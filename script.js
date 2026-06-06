@@ -1,316 +1,149 @@
-// script.js - Full Stack Developer Portfolio
-// Mobile menu toggle, smooth scroll, contact form handler, and dynamic interactions
+// ============================================================
+//  script.js — Muhammad Ahsan Portfolio
+//  Interactions: Cursor glow, theme toggle, smooth scroll,
+//  mobile menu, scroll reveals
+// ============================================================
 
-// Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-    
-    // ========== 1. MOBILE MENU TOGGLE ==========
-    const mobileMenuBtn = document.getElementById('mobile-menu');
-    const navLinks = document.querySelector('.nav-links');
-    
-    if (mobileMenuBtn && navLinks) {
-        mobileMenuBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            navLinks.classList.toggle('active');
-            // Change icon between bars and times
-            const icon = mobileMenuBtn.querySelector('i');
-            if (navLinks.classList.contains('active')) {
-                icon.classList.remove('fa-bars');
-                icon.classList.add('fa-times');
-            } else {
-                icon.classList.remove('fa-times');
-                icon.classList.add('fa-bars');
-            }
-        });
-        
-        // Close mobile menu when clicking on a link
-        const navItems = navLinks.querySelectorAll('a');
-        navItems.forEach(link => {
-            link.addEventListener('click', function() {
-                navLinks.classList.remove('active');
-                const icon = mobileMenuBtn.querySelector('i');
-                icon.classList.remove('fa-times');
-                icon.classList.add('fa-bars');
-            });
-        });
-        
-        // Close menu when clicking outside (optional, improves UX)
-        document.addEventListener('click', function(event) {
-            if (!navLinks.contains(event.target) && !mobileMenuBtn.contains(event.target) && navLinks.classList.contains('active')) {
-                navLinks.classList.remove('active');
-                const icon = mobileMenuBtn.querySelector('i');
-                icon.classList.remove('fa-times');
-                icon.classList.add('fa-bars');
-            }
-        });
-    }
-    
-    // ========== 2. SMOOTH SCROLLING FOR NAVIGATION LINKS ==========
-    // Select all anchor links that start with #
-    const allLinks = document.querySelectorAll('a[href^="#"]');
-    
-    allLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            const targetId = this.getAttribute('href');
-            // Skip if it's just "#" or empty
-            if (targetId === '#' || targetId === '') return;
-            
-            const targetElement = document.querySelector(targetId);
-            if (targetElement) {
-                e.preventDefault();
-                const navbarHeight = document.querySelector('.navbar') ? document.querySelector('.navbar').offsetHeight : 70;
-                const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - navbarHeight;
-                
-                window.scrollTo({
-                    top: targetPosition,
-                    behavior: 'smooth'
-                });
-            }
-        });
+(function() {
+  // ----- Cursor Glow (with touch device detection) -----
+  const cursorGlow = document.getElementById('cursorGlow');
+  let mouseX = 0, mouseY = 0, glowX = 0, glowY = 0;
+
+  function animateCursor() {
+    if (!cursorGlow) return;
+    glowX += (mouseX - glowX) * 0.08;
+    glowY += (mouseY - glowY) * 0.08;
+    cursorGlow.style.transform = `translate(${glowX}px, ${glowY}px) translate(-50%, -50%)`;
+    requestAnimationFrame(animateCursor);
+  }
+
+  document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  });
+
+  animateCursor();
+
+  // Hide cursor glow on touch devices
+  if ('ontouchstart' in window) {
+    document.addEventListener('touchstart', () => {
+      if (cursorGlow) cursorGlow.style.display = 'none';
+    }, { once: true });
+  }
+
+  // ----- Theme Toggle (dark/light) -----
+  const htmlTag = document.documentElement;
+  const themeToggle = document.getElementById('themeToggle');
+  const STORAGE_KEY = 'ma_portfolio_theme';
+
+  function applyTheme(theme) {
+    htmlTag.setAttribute('data-theme', theme);
+    themeToggle.classList.toggle('is-light', theme === 'light');
+    localStorage.setItem(STORAGE_KEY, theme);
+  }
+
+  const savedTheme = localStorage.getItem(STORAGE_KEY) || 'dark';
+  applyTheme(savedTheme);
+
+  themeToggle.addEventListener('click', () => {
+    const current = htmlTag.getAttribute('data-theme');
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  });
+
+  // ----- Navbar Shadow on Scroll -----
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 30);
+  }, { passive: true });
+
+  // ----- Smooth Scroll for Anchor Links -----
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      const targetId = this.getAttribute('href');
+      if (targetId === '#') return;
+      const target = document.querySelector(targetId);
+      if (!target) return;
+      e.preventDefault();
+      const offset = navbar.offsetHeight + 12;
+      const top = target.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: 'smooth' });
+      closeMobileMenu();
     });
-    
-    // ========== 3. CONTACT FORM HANDLER (with validation & feedback) ==========
-    const contactForm = document.getElementById('portfolio-contact-form');
-    const formFeedback = document.getElementById('form-feedback');
-    
-    if (contactForm) {
-        contactForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Get form fields
-            const nameInput = contactForm.querySelector('input[type="text"]');
-            const emailInput = contactForm.querySelector('input[type="email"]');
-            const messageTextarea = contactForm.querySelector('textarea');
-            
-            const name = nameInput ? nameInput.value.trim() : '';
-            const email = emailInput ? emailInput.value.trim() : '';
-            const message = messageTextarea ? messageTextarea.value.trim() : '';
-            
-            // Simple validation
-            if (name === '') {
-                showFormFeedback('❌ Please enter your name.', 'error');
-                highlightField(nameInput, true);
-                return;
-            }
-            
-            if (email === '') {
-                showFormFeedback('❌ Please enter your email address.', 'error');
-                highlightField(emailInput, true);
-                return;
-            }
-            
-            // Basic email regex
-            const emailRegex = /^[^\s@]+@([^\s@.,]+\.)+[^\s@.,]{2,}$/;
-            if (!emailRegex.test(email)) {
-                showFormFeedback('❌ Please enter a valid email address (e.g., name@example.com).', 'error');
-                highlightField(emailInput, true);
-                return;
-            }
-            
-            if (message === '') {
-                showFormFeedback('❌ Please write a message.', 'error');
-                highlightField(messageTextarea, true);
-                return;
-            }
-            
-            // If all validations pass
-            showFormFeedback('✅ Thank you, ' + name + '! Your message has been sent. (Demo simulation)', 'success');
-            
-            // Reset form fields
-            contactForm.reset();
-            
-            // Remove any red highlights after success
-            [nameInput, emailInput, messageTextarea].forEach(field => {
-                if (field) highlightField(field, false);
-            });
-            
-            // Optional: log to console for debugging
-            console.log(`Message from ${name} (${email}): ${message}`);
+  });
+
+  // ----- Active Nav Link Highlighting -----
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-link');
+
+  const sectionObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => {
+          link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`);
         });
-        
-        // Remove error highlight on focus
-        const formInputs = contactForm.querySelectorAll('input, textarea');
-        formInputs.forEach(input => {
-            input.addEventListener('focus', function() {
-                highlightField(this, false);
-                if (formFeedback) formFeedback.textContent = '';
-            });
-        });
-    }
-    
-    // Helper: show form feedback with styling
-    function showFormFeedback(message, type) {
-        if (!formFeedback) return;
-        formFeedback.textContent = message;
-        formFeedback.style.color = type === 'error' ? '#dc2626' : '#16a34a';
-        formFeedback.style.fontWeight = '500';
-        formFeedback.style.marginTop = '0.8rem';
-        
-        // Auto clear after 5 seconds
+      }
+    });
+  }, { rootMargin: '-35% 0px -60% 0px' });
+
+  sections.forEach(section => sectionObserver.observe(section));
+
+  // ----- Mobile Menu (Hamburger) -----
+  const hamburger = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobileMenu');
+
+  function closeMobileMenu() {
+    if (mobileMenu) mobileMenu.classList.remove('open');
+    if (hamburger) hamburger.classList.remove('open');
+    if (hamburger) hamburger.setAttribute('aria-expanded', 'false');
+  }
+
+  if (hamburger) {
+    hamburger.addEventListener('click', () => {
+      const isOpen = mobileMenu.classList.toggle('open');
+      hamburger.classList.toggle('open', isOpen);
+      hamburger.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    document.querySelectorAll('.mob-link').forEach(link => {
+      link.addEventListener('click', closeMobileMenu);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!navbar.contains(e.target)) closeMobileMenu();
+    });
+  }
+
+  // ----- Scroll Reveal: Skill Cards -----
+  const skillCards = document.querySelectorAll('.skill-card');
+  const skillObserver = new IntersectionObserver((entries, obs) => {
+    entries.forEach((entry, index) => {
+      if (entry.isIntersecting) {
         setTimeout(() => {
-            if (formFeedback.textContent === message) {
-                formFeedback.textContent = '';
-            }
-        }, 5000);
-    }
-    
-    // Helper: highlight field border on error
-    function highlightField(field, isError) {
-        if (!field) return;
-        if (isError) {
-            field.style.borderColor = '#dc2626';
-            field.style.backgroundColor = '#fef2f2';
-        } else {
-            field.style.borderColor = '#e2e8f0';
-            field.style.backgroundColor = '';
-        }
-    }
-    
-    // ========== 4. ACTIVE NAVIGATION LINK HIGHLIGHT ON SCROLL ==========
-    const sections = document.querySelectorAll('section[id]');
-    const navItems = document.querySelectorAll('.nav-links a');
-    
-    function updateActiveNavOnScroll() {
-        let currentSectionId = '';
-        const scrollPosition = window.scrollY + 150; // offset for navbar
-        
-        sections.forEach(section => {
-            const sectionTop = section.offsetTop;
-            const sectionBottom = sectionTop + section.offsetHeight;
-            if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
-                currentSectionId = section.getAttribute('id');
-            }
-        });
-        
-        navItems.forEach(link => {
-            link.classList.remove('active-nav');
-            const href = link.getAttribute('href');
-            if (href === `#${currentSectionId}`) {
-                link.classList.add('active-nav');
-            }
-        });
-    }
-    
-    // Add extra style for active link (CSS class)
-    const style = document.createElement('style');
-    style.textContent = `
-        .nav-links a.active-nav {
-            color: #3b82f6 !important;
-            font-weight: 700;
-            position: relative;
-        }
-        .nav-links a.active-nav::after {
-            content: '';
-            position: absolute;
-            bottom: -6px;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: #3b82f6;
-            border-radius: 2px;
-        }
-        @media (max-width: 768px) {
-            .nav-links a.active-nav::after {
-                bottom: -4px;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-    
-    window.addEventListener('scroll', updateActiveNavOnScroll);
-    updateActiveNavOnScroll(); // initial call
-    
-    // ========== 5. PROFILE IMAGE PLACEHOLDER HANDLER ==========
-    // If the profile image fails to load (user hasn't added actual image yet),
-    // show a subtle background or fallback message but keep layout intact.
-    const profileImg = document.getElementById('profile-img');
-    if (profileImg) {
-        profileImg.addEventListener('error', function() {
-            // Instead of broken icon, set a gradient or default avatar
-            this.style.objectFit = 'cover';
-            this.style.background = 'linear-gradient(135deg, #3b82f6, #8b5cf6)';
-            this.style.opacity = '0.9';
-            // optional: add a default icon but keep the note visible.
-            this.alt = "Developer portrait - add your image";
-            const parentNote = document.querySelector('.image-note');
-            if (parentNote) {
-                parentNote.style.background = '#fff3bf';
-                parentNote.innerHTML = '🖼️ Add your photo: replace "profile-placeholder.jpg"';
-            }
-        });
-    }
-    
-    // ========== 6. ADD DYNAMIC YEAR IN FOOTER (optional future-proof) ==========
-    const footerYear = document.querySelector('.footer-content p');
-    if (footerYear && !footerYear.innerHTML.includes('2026')) {
-        const currentYear = new Date().getFullYear();
-        footerYear.innerHTML = footerYear.innerHTML.replace('2025', currentYear);
-    }
-    
-    // ========== 7. PROJECT CARD INTERACTION: subtle hover log (dev friendly) ==========
-    const projectCard = document.querySelector('.project-card-large');
-    if (projectCard) {
-        projectCard.addEventListener('mouseenter', () => {
-            // just a playful effect - no console spam, but adds micro-interaction feel
-            projectCard.style.transition = 'transform 0.2s ease, box-shadow 0.3s';
-        });
-    }
-    
-    // ========== 8. SCROLL REVEAL (lightweight) ==========
-    // Add a fade-up animation on scroll for skill cards, edu, etc.
-    const fadeElements = document.querySelectorAll('.skill-card, .edu-card, .project-card-large, .contact-grid > *');
-    
-    function checkFadeIn() {
-        fadeElements.forEach(el => {
-            const elementTop = el.getBoundingClientRect().top;
-            const windowHeight = window.innerHeight;
-            if (elementTop < windowHeight - 80) {
-                el.style.opacity = '1';
-                el.style.transform = 'translateY(0)';
-            }
-        });
-    }
-    
-    // set initial hidden styles
-    fadeElements.forEach(el => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(24px)';
-        el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          entry.target.classList.add('visible');
+        }, index * 60);
+        obs.unobserve(entry.target);
+      }
     });
-    
-    window.addEventListener('scroll', checkFadeIn);
-    window.addEventListener('load', checkFadeIn);
-    checkFadeIn(); // immediate trigger
-    
-    // ========== 9. BONUS: Tailwind CSS version badge (just info in console) ==========
-    console.log('✅ Portfolio loaded | Tailwind CSS 3.4.17 ready | Frontend: HTML5, CSS3, React JS ready');
-    
-    // ========== 10. Handle any external github/demo links (prevent default empty) ==========
-    const projectLinks = document.querySelectorAll('.project-link');
-    projectLinks.forEach(link => {
-        const hrefValue = link.getAttribute('href');
-        if (hrefValue === '#' || hrefValue === '' || hrefValue === '#0') {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                // provide small user-friendly alert or console message
-                const feedbackMsg = document.createElement('span');
-                feedbackMsg.textContent = '🔧 Live demo link will be added soon!';
-                feedbackMsg.style.position = 'fixed';
-                feedbackMsg.style.bottom = '20px';
-                feedbackMsg.style.left = '50%';
-                feedbackMsg.style.transform = 'translateX(-50%)';
-                feedbackMsg.style.backgroundColor = '#0f172a';
-                feedbackMsg.style.color = 'white';
-                feedbackMsg.style.padding = '8px 16px';
-                feedbackMsg.style.borderRadius = '40px';
-                feedbackMsg.style.fontSize = '0.8rem';
-                feedbackMsg.style.zIndex = '999';
-                feedbackMsg.style.fontWeight = '500';
-                document.body.appendChild(feedbackMsg);
-                setTimeout(() => {
-                    feedbackMsg.remove();
-                }, 2000);
-            });
-        }
+  }, { threshold: 0.1 });
+  skillCards.forEach(card => skillObserver.observe(card));
+
+  // ----- Scroll Reveal: Contact Cards -----
+  const contactCards = document.querySelectorAll('.contact-card');
+  const contactObserver = new IntersectionObserver((entries, obs) => {
+    entries.forEach((entry, index) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => {
+          entry.target.classList.add('visible');
+        }, index * 90);
+        obs.unobserve(entry.target);
+      }
     });
-});
+  }, { threshold: 0.1 });
+  contactCards.forEach(card => contactObserver.observe(card));
+
+  // ----- Hero Text Stagger (ensure animations run) -----
+  const revealLines = document.querySelectorAll('.reveal-line');
+  revealLines.forEach((el, i) => {
+    el.style.animationDelay = `${0.1 + i * 0.15}s`;
+  });
+})();
